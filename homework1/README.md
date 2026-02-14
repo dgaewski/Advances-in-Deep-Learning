@@ -11,7 +11,7 @@ First, familiarize yourself with `BigNet` (see `homework/bignet.py`). You should
 If you're curious to see how big `BigNet` actually is call
 
 ```bash
-python3 -m homework.stats bignet
+python -m homework.stats bignet
 ```
 
 It should show this (up to rounding errors depending on your PyTorch backend)
@@ -61,7 +61,7 @@ You have to override the `forward` function of your new `HalfLinear` layer to ca
 When you're done test your new network:
 
 ```bash
-python3 -m homework.stats bignet half_precision
+python -m homework.stats bignet half_precision
 ```
 
 You should see a 50% decrease in memory use throughout:
@@ -82,7 +82,7 @@ Backward memory           80.23 MB        0.04 MB
 You can also compare the outputs of the two models:
 
 ```bash
-python3 -m homework.compare bignet half_precision
+python -m homework.compare bignet half_precision
 ```
 
 They should match within a tolerance of 0.002.
@@ -96,14 +96,14 @@ Start by implementing `LoRALinear`. It is fine to inherit from `HalfLinear` and 
 Use `stats` and `compare` to test your implementation.
 
 ```bash
-python3 -m homework.stats bignet lora
-python3 -m homework.compare bignet lora
+python -m homework.stats bignet lora
+python -m homework.compare bignet lora
 ```
 
 Finally, let's see if your LoRA adapter trains:
 
 ```bash
-python3 -m homework.fit lora
+python -m homework.fit lora
 ```
 
 This script fits the model to 1000 samples of random noise half with a label 0, half with a label 1. Since the input dimension is large (1024) and the number of samples is small, this will almost certainly overfit within very few iterations (about 30).
@@ -158,7 +158,7 @@ Let's start with `homework/qlora.py`. If you inherit from `Linear4Bit`, `QLoRA` 
 The test grader we provide
 
 ```bash
-python3 -m grader homework -v
+python -m grader homework -v
 ```
 
 This will run a subset of test cases we use during the actual testing.
@@ -176,14 +176,14 @@ This will require implementing your own block quantizer. Only attempt this if yo
 Once you finished the assignment, create a submission bundle using:
 
 ```bash
-python3 bundle.py homework [YOUR UT ID]
+python bundle.py homework [YOUR UT ID]
 ```
 
 Submit the zip file on Canvas. Please note that the maximum file size our grader accepts is **20MB**. Please keep your solution compact.
 Please double-check that your zip file was properly created, by grading it again:
 
 ```bash
-python3 -m grader [YOUR UT ID].zip
+python -m grader [YOUR UT ID].zip
 ```
 
 ## Online grader
