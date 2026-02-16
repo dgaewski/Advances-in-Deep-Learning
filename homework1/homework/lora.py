@@ -16,9 +16,7 @@ class LoRALinear(HalfLinear):
             out_features: int,
             lora_dim: int,
             bias: bool = True,
-            alpha: float = 1.1,
-            device = "cuda",
-            dtype = None
+            alpha: float = 16.0,
         ) -> None:
             """
             Implement the LoRALinear layer as described in the homework
@@ -36,18 +34,21 @@ class LoRALinear(HalfLinear):
             if self.bias is not None:
                 self.bias.requires_grad = False
 
-            self.lora_a = (torch.nn.Linear(in_features, lora_dim, bias=False, device=device, dtype=dtype)).to(torch.float32)
-            self.lora_b = (torch.nn.Linear(lora_dim, out_features, bias=False, device=device, dtype=dtype)).to(torch.float32)
+
+            self.lora_a = torch.nn.Linear(in_features, lora_dim, bias=False)
+            self.lora_b = torch.nn.Linear(lora_dim, out_features, bias=False)
             self.alpha_div_rank = alpha / lora_dim
 
-            torch.nn.init.kaiming_uniform_(self.lora_a.weight)
+            torch.nn.init.kaiming_normal_(self.lora_a.weight)
             torch.nn.init.zeros_(self.lora_b.weight)
 
             #raise NotImplementedError()
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             # TODO: Forward. Make sure to cast inputs to self.linear_dtype and the output back to x.dtype
-            return super().forward(x) + self.alpha_div_rank * self.lora_b(self.lora_a(x))
+            input_dtype = x.dtype
+
+            return (super().forward(x) + self.alpha_div_rank * self.lora_b(self.lora_a(x.to(torch.float32)))).to(input_dtype)
             #raise NotImplementedError()
 
 

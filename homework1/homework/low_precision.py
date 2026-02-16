@@ -77,7 +77,8 @@ class Linear4Bit(torch.nn.Module):
             del state_dict[f"{prefix}weight"]
             # TODO: Quantize the weights and store them in self.weight_q4 and self.weight_norm
 
-            self.weight_q4, self.weight_norm = block_quantize_4bit(weight)
+            self.weight_q4, self.weight_norm = block_quantize_4bit(weight.flatten())
+            
 
             print(f"Dimensions of self.weight_q4: {self.weight_q4.shape}")
             print(f"Dimensions of self.weight_norm: {self.weight_norm.shape}")

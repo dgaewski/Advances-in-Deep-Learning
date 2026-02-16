@@ -29,12 +29,15 @@ class HalfLinear(torch.nn.Linear):
         # TODO: Implement me
 
         # x.to(torch.float16)
-        #use torch autocast instead
-        device_type = x.device.type
-        with torch.autocast(device_type=device_type, dtype=torch.float16):
-            x = super().forward(x)
         
-        return x.to(torch.float32)
+        # with torch.autocast(device_type=device_type, dtype=torch.float16):
+        #     x = super().forward(x)
+
+        #autocast can mess with gradients, use this instead:
+        input_dtype = x.dtype
+        x = super().forward(x.to(self.weight.dtype))
+
+        return x.to(input_dtype)  
 
         #raise NotImplementedError()
 
