@@ -78,10 +78,6 @@ class Linear4Bit(torch.nn.Module):
             # TODO: Quantize the weights and store them in self.weight_q4 and self.weight_norm
 
             self.weight_q4, self.weight_norm = block_quantize_4bit(weight.flatten())
-            
-
-            print(f"Dimensions of self.weight_q4: {self.weight_q4.shape}")
-            print(f"Dimensions of self.weight_norm: {self.weight_norm.shape}")
 
             #raise NotImplementedError()
 
@@ -90,10 +86,15 @@ class Linear4Bit(torch.nn.Module):
             # TODO: Dequantize and call the layer
             # Hint: You can use torch.nn.functional.linear
 
-            dequantized = block_dequantize_4bit(self.weight_q4,self.weight_norm)
-            weights = dequantized.view(self._shape) #need to reshape back to correct format
+            #move to device first to avoid errors:
+            q4 = self.weight_q4.to(x.device)
+            norm = self.weight_norm.to(x.device)
 
-            return torch.nn.functional.linear(x, weights, self.bias)
+            dequantized = block_dequantize_4bit(q4, norm)
+            weights = dequantized.view(self._shape) #need to reshape back to correct format
+            #print(f"x: {x.device}, weights: {weights.device}, bias: {self.bias.device if self.bias is not None else None}")
+            bias = self.bias.to(x.device) if self.bias is not None else None
+            return torch.nn.functional.linear(x, weights, bias)
 
             #raise NotImplementedError()
 

@@ -20,7 +20,13 @@ class HalfLinear(torch.nn.Linear):
         # TODO: Implement me
         super().__init__(in_features, out_features, bias)
         self.half() #convert to half precision
-        self.weight.requires_grad_ = False #turn off requires grad for this layer
+        self.weight.requires_grad = False #turn off requires grad for this layer
+
+        #Freeze the bias
+        self.weight.requires_grad = False
+        if self.bias is not None:
+            self.bias.requires_grad = False
+
         #raise NotImplementedError()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
