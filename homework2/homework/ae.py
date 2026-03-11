@@ -119,7 +119,7 @@ class PatchAutoEncoder(torch.nn.Module, PatchAutoEncoderBase):
             self.conv1 = torch.nn.Conv2d(latent_dim, latent_dim, kernel_size=3, padding=1)
             self.conv2 = torch.nn.Conv2d(latent_dim, latent_dim, kernel_size=3, padding=1)
             self.act = torch.nn.GELU()
-            self.proj = torch.nn.Conv2d(latent_dim, bottleneck, kernel_size=1)
+            self.proj = torch.nn.Conv2d(latent_dim, bottleneck, kernel_size=1)  #project our image down to the bottleneck size - this is the compression
 
             #raise NotImplementedError()
 
@@ -139,7 +139,7 @@ class PatchAutoEncoder(torch.nn.Module, PatchAutoEncoderBase):
         def __init__(self, patch_size: int, latent_dim: int, bottleneck: int):
             super().__init__()
 
-            self.expand = torch.nn.Conv2d(bottleneck, latent_dim, kernel_size=1)
+            self.expand = torch.nn.Conv2d(bottleneck, latent_dim, kernel_size=1)  #expand back up from bottleneck (decompression)
             self.act = torch.nn.GELU()
             self.conv1 = torch.nn.Conv2d(latent_dim, latent_dim, kernel_size=3, padding=1)
             self.conv2 = torch.nn.Conv2d(latent_dim, latent_dim, kernel_size=3, padding=1)

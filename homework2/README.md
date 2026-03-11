@@ -90,9 +90,13 @@ If your quantizer is blocky, or blurry don't worry, you will still be able to co
 With the `BSQPatchAutoEncoder` trained, let's create a token-level dataset for the next part.
 
 ```bash
-python -m homework.tokenize checkpoints/YOUR_BSQPatchAutoEncoder.pth data/tokenized_train.pth data/train/*.jpg
+# python -m homework.tokenize checkpoints/YOUR_BSQPatchAutoEncoder.pth data/tokenized_train.pth data/train/*.jpg
 
-python -m homework.tokenize checkpoints/YOUR_BSQPatchAutoEncoder.pth data/tokenized_valid.pth data/valid/*.jpg
+python -m homework.tokenize checkpoints/YOUR_BSQPatchAutoEncoder.pth data/tokenized_train.pth data/train/
+
+# python -m homework.tokenize checkpoints/YOUR_BSQPatchAutoEncoder.pth data/tokenized_valid.pth data/valid/*.jpg
+
+python -m homework.tokenize checkpoints/YOUR_BSQPatchAutoEncoder.pth data/tokenized_valid.pth data/valid/
 ```
 
 This will create two files `data/tokenized_train.pth` and `data/tokenized_valid.pth` containing the entire training and validation datasets.
@@ -101,6 +105,9 @@ If you're curious, check the tokenized checkpoint size:
 
 ```
 du -hs data/tokenized_train.pth
+
+for powershell:
+(Get-Item data/tokenized_train.pth).length / 1MB
 ```
 
 If you follow the hyper-parameters above, it should be around 76Mb (compared to 500Mb for the original JPG dataset).
@@ -150,6 +157,8 @@ To generate your own samples use
 ```
 python3 -m homework.generation checkpoints/YOUR_TOKENIZER checkpoints/YOUR_AUTOREGRESSIVE_MODEL N_IMAGES OUTPUT_PATH
 ```
+
+python -m homework.generation checkpoints/2026-03-09_17-56-46_BSQPatchAutoEncoder.pth checkpoints/2026-03-10_22-14-04_AutoregressiveModel.pth 10 generated_samples
 
 If you trained your model for only a few (even one works) epochs, the generations may look like this:
 
