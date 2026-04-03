@@ -85,11 +85,11 @@ def train_model(
     from peft import LoraConfig, get_peft_model
     from transformers import Trainer, TrainingArguments
 
-    # 1. Load base model and training data
+    # Load base model and training data
     llm = BaseLLM()
     train_data = Dataset("train")
 
-    # 2. Add LoRA adapter
+    # Add LoRA adapter
     lora_config = LoraConfig(
         r=16,
         lora_alpha=64,              # ~4x rank
@@ -100,10 +100,10 @@ def train_model(
     llm.model = get_peft_model(llm.model, lora_config)
     llm.model.enable_input_require_grads()  # fix for gradient_checkpointing bug
 
-    # 3. Build tokenized dataset
+    # Build tokenized dataset
     dataset = TokenizedDataset(llm.tokenizer, train_data, format_example)
 
-    # 4. Set up training args
+    # Set up training args
     args = TrainingArguments(
         output_dir=output_dir,
         logging_dir=output_dir,
@@ -114,11 +114,11 @@ def train_model(
         gradient_checkpointing=True,
     )
 
-    # 5. Train
+    # Train
     trainer = Trainer(model=llm.model, args=args, train_dataset=dataset)
     trainer.train()
 
-    # 6. Save the LoRA adapter
+    # Save the LoRA adapter
     trainer.save_model(output_dir)
 
     test_model(output_dir)
