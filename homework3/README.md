@@ -119,7 +119,7 @@ python -m homework.sft train
 and make sure it can be loaded by the grader
 
 ```bash
-python -m homework.sft train
+python -m homework.sft test
 ```
 
 ## Rejection sampling Fine-Tuning (25 pts)
