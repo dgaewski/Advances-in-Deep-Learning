@@ -50,7 +50,7 @@ def format_example(prompt: str, answer: str) -> dict[str, str]:
     Construct a question / answer pair. Consider rounding the answer to make it easier for the LLM.
     """
     return  {"question": prompt,
-             "answer": f"<answer>{round(answer,2)}</answer>"}
+             "answer": f"<answer>{round(answer,1)}</answer>"}   #experiment with rounding to 1 place
 
 
     raise NotImplementedError()
@@ -91,8 +91,8 @@ def train_model(
 
     # Add LoRA adapter
     lora_config = LoraConfig(
-        r=16,
-        lora_alpha=64,              # ~4x rank
+        r=12,
+        lora_alpha=60,              # ~4-5x rank - improve model without pushing file size up
         target_modules="all-linear",
         bias="none",
         task_type="CAUSAL_LM",
@@ -108,9 +108,9 @@ def train_model(
         output_dir=output_dir,
         logging_dir=output_dir,
         report_to="tensorboard",
-        num_train_epochs=5,
+        num_train_epochs=10,        #increase for more training epochs
         per_device_train_batch_size=32,
-        learning_rate=2e-4,
+        learning_rate=1e-4,         #try lower learning rate to avoid overshooting
         gradient_checkpointing=True,
     )
 

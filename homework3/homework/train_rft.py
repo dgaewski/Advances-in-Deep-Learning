@@ -97,8 +97,8 @@ def train_model(
 
     # Add LoRA adapter
     lora_config = LoraConfig(
-        r=16,
-        lora_alpha=64,              # ~4x rank
+        r=14,
+        lora_alpha=70,              # ~4x rank
         target_modules="all-linear",
         bias="none",
         task_type="CAUSAL_LM",
@@ -114,9 +114,9 @@ def train_model(
         output_dir=output_dir,
         logging_dir=output_dir,
         report_to="tensorboard",
-        num_train_epochs=5,
+        num_train_epochs=10,
         per_device_train_batch_size=32,
-        learning_rate=2e-4,
+        learning_rate=1e-4,
         gradient_checkpointing=True,
     )
 
