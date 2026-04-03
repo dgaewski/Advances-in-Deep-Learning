@@ -75,6 +75,7 @@ class GenerateGrader(Grader):
         full_texts = [questions[i] + answers[i] for i in range(len(questions))]
         return self.compute_loss(llm, full_texts)
 
+
     @Case(score=10, timeout=40000)
     def test_generate(self):
         """Test non-batched generate function"""

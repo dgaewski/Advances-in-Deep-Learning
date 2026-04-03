@@ -5,6 +5,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 checkpoint = "HuggingFaceTB/SmolLM2-360M-Instruct"
 
+
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 
@@ -62,13 +63,12 @@ class BaseLLM:
                 input_ids,
                 attention_mask=attention_mask,
                 max_new_tokens=50,
-                eos_token_id=self.tokenizer.eos_token_id,
-                pad_token_id=self.tokenizer.eos_token_id,  # silences the warning
-                use_cache=True
+                eos_token_id=[]     #FIXED - show and EOS token that doesnt exist so the basic generate doesnt keep stopping early
             )
 
+
         new_tokens = generation[:, input_ids.shape[1]:]
-        return self.tokenizer.decode(new_tokens[0], skip_special_tokens=True).strip() #add strip to avoid parsing errors when starting with a space for the grader
+        return self.tokenizer.decode(new_tokens[0], skip_special_tokens=True)
 
         
 
