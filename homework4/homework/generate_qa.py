@@ -152,6 +152,82 @@ def extract_kart_objects(
         - is_center_kart: Boolean indicating if this is the kart closest to image center
     """
 
+    # Read the info.json file
+    with open(info_path) as f:
+        info = json.load(f)
+
+    #setup our list of karts found
+    karts = []
+
+    #Load each detection
+    for detection in info['detections'][view_index]:
+        class_id, track_id, x1, y1, x2, y2 = detection
+        class_id = int(class_id)
+        track_id = int(track_id)
+
+        if class_id != 1:
+            continue
+
+        #we need to scale detection coordinates to match the scaling we do on the image from 600X400 -> 150X100 before doing calculations
+        # Scale coordinates to fit the current image size
+            # Calculate scaling factors
+        scale_x = img_width / ORIGINAL_WIDTH
+        scale_y = img_height / ORIGINAL_HEIGHT
+
+        x1_scaled = int(x1 * scale_x)
+        y1_scaled = int(y1 * scale_y)
+        x2_scaled = int(x2 * scale_x)
+        y2_scaled = int(y2 * scale_y)
+
+        # Skip if bounding box is too small
+        if (x2_scaled - x1_scaled) < min_box_size or (y2_scaled - y1_scaled) < min_box_size:
+            continue
+
+        if x2_scaled < 0 or x1_scaled > img_width or y2_scaled < 0 or y1_scaled > img_height:
+            continue
+
+
+        kart_name = info['karts'][track_id]
+
+        #compute the centers for this kart
+        x_center = (x2_scaled + x1_scaled) / 2
+        y_center = (y2_scaled + y1_scaled) / 2
+
+        center = (x_center, y_center)
+
+        karts.append({
+            'instance_id': track_id,
+            'kart_name': kart_name,
+            'center': center,
+            'is_center_kart': False  #we will determine once all karts are processed
+            })
+
+    #for each kart in list, find out if its closest to center
+    closest_kart = None
+    dist = 50000
+    img_center_x = img_width / 2    
+    img_center_y = img_height / 2
+
+    for i, kart in enumerate(karts):
+        
+        kart_x = kart['center'][0]
+        kart_y = kart['center'][1]
+
+        #find distance to center - distance formula
+        k_dist = ( (kart_x - img_center_x) ** 2 + (kart_y - img_center_y) ** 2 ) ** 0.5
+
+        if k_dist <= dist:
+            #update closest dist
+            dist = k_dist
+            #update closest kart
+            closest_kart = i
+
+    #update the correct kart that is center kart
+    if karts:
+        karts[closest_kart]['is_center_kart'] = True
+
+    #return a list with: instance_id, kart_name, center, is_center_kart (bool)
+    return karts
     raise NotImplementedError("Not implemented")
 
 
@@ -165,6 +241,12 @@ def extract_track_info(info_path: str) -> str:
     Returns:
         Track name as a string
     """
+
+    # Read the info.json file
+    with open(info_path) as f:
+        info = json.load(f)
+    
+    return info['track']
 
     raise NotImplementedError("Not implemented")
 
@@ -184,6 +266,7 @@ def generate_qa_pairs(info_path: str, view_index: int, img_width: int = 150, img
     """
     # 1. Ego car question
     # What kart is the ego car?
+    
 
     # 2. Total karts question
     # How many karts are there in the scenario?

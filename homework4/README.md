@@ -39,7 +39,7 @@ python -m homework.finetune demo_train
 and benchmark this model
 
 ```bash
-python -m homework.finetune test path/to/your/checkpoint
+python -m homework.finetune test "C:\Users\Lisa Su\Documents\GitHub\Advances-in-Deep-Learning\homework4\homework\demo_train"
 ```
 
 Do not expect the model to perform very well, after all it was trained on only 5 question-answer pairs.
@@ -83,7 +83,7 @@ Run
 python generate_qa.py check --info_file ../data/valid/00000_info.json --view_index 0
 ```
 
-The visualize the extracted supertuxkart information and your generated questions.
+Then visualize the extracted supertuxkart information and your generated questions.
 Finally, write question-answer pairs into a `..._qa_pairs.json` file in `data/train/` and train your model using
 
 ```bash
