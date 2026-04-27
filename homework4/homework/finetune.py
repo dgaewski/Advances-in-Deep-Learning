@@ -8,6 +8,9 @@ from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
 from transformers import AutoProcessor, Trainer, TrainingArguments
 
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
 from .base_vlm import BaseVLM
 from .data import VQADataset, benchmark
 
@@ -110,8 +113,8 @@ class VQADatasetForTraining(Dataset):
 def train(
     data_dir: Path | None = None,
     train_dataset_name: str = "train",
-    output_dir: str = "vlm_sft",
-    num_train_epochs: int = 0.05,  # use only 0.05 epoch for training
+    output_dir: str = "vlm_model",
+    num_train_epochs: int = 0.2,  # use only 0.05 epoch for training
     per_device_train_batch_size: int = 8,
     gradient_accumulation_steps: int = 4,
     learning_rate: float = 5e-4,
@@ -135,6 +138,11 @@ def train(
         lora_alpha: LoRA alpha
         lora_dropout: LoRA dropout
     """
+
+    #confirm the device and batch size
+    print(f"Device: {DEVICE}")
+    print(f"Batch size: {per_device_train_batch_size}")
+
     vlm = BaseVLM()
 
     # Create output directory

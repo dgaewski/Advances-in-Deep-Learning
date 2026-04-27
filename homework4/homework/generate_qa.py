@@ -264,26 +264,159 @@ def generate_qa_pairs(info_path: str, view_index: int, img_width: int = 150, img
     Returns:
         List of dictionaries, each containing a question and answer
     """
+
+    #extract info for this view to ask questions
+    kart_obj = extract_kart_objects(info_path, view_index,img_width,img_height)
+    track_info = extract_track_info(info_path)
+
+    # No visible karts in this view — skip it
+    if not kart_obj:
+        return []
+
+    # Find corresponding image file
+    info_path = Path(info_path)
+    base_name = info_path.stem.replace("_info", "")
+    #image_file = list(info_path.parent.glob(f"{base_name}_{view_index:02d}_im.jpg"))[0]
+    image_file = f"{info_path.parent.name}/{base_name}_{view_index:02d}_im.jpg"
+
+
+    '''
+    kart_obj structure:
+    {'instance_id': 0, 'kart_name': 'nolok',  'center': (75, 78), 'is_center_kart': True},
+    {'instance_id': 5, 'kart_name': 'konqi',  'center': (65, 50), 'is_center_kart': False},
+    {'instance_id': 9, 'kart_name': 'gnu',    'center': (90, 45), 'is_center_kart': False},
+    
+    '''
+
     # 1. Ego car question
     # What kart is the ego car?
-    
 
+    #the ego car is the one closest to center - need to loop
+    ego_car = None
+    for kart in kart_obj:
+        if kart['is_center_kart'] == True:
+            ego_car = kart['kart_name']
+            break
+
+    q1 = {
+        "question": "What kart is the ego car?",
+        "answer": ego_car,
+        "image_file": image_file
+    }
+    
     # 2. Total karts question
     # How many karts are there in the scenario?
+
+    num_karts = 0
+    for kart in kart_obj:
+        num_karts += 1
+
+    q2 = {
+        "question": "How many karts are there in the scenario?",
+        "answer": str(num_karts),
+        "image_file": image_file
+    }
 
     # 3. Track information questions
     # What track is this?
 
+    q3 = {
+        "question": "What track is this?",
+        "answer": track_info,
+        "image_file": image_file
+    }
+
     # 4. Relative position questions for each kart
-    # Is {kart_name} to the left or right of the ego car?
-    # Is {kart_name} in front of or behind the ego car?
-    # Where is {kart_name} relative to the ego car?
+
+    ego_center = None
+    for kart in kart_obj:
+        if kart['is_center_kart'] == True:
+            ego_center = kart['center']
+            break
+
+    #setup counters to use in q5
+    count_left = 0
+    count_right = 0
+    count_front = 0
+    count_back = 0
+
+
+    #collect q4 questions:
+    q4_questions = []
+
+    # Loop through non-ego karts for question 4
+    for kart in kart_obj:
+        if kart['is_center_kart']:
+            continue  # skip ego kart
+
+        # determine left/right
+        if kart['center'][0] < ego_center[0]:
+            lr = "left"
+            count_left += 1
+        else:
+            lr = "right"
+            count_right += 1
+
+        # determine front/back (lower y = front)
+        if kart['center'][1] < ego_center[1]:
+            fb = "front"
+            count_front += 1
+        else:
+            fb = "back"
+            count_back += 1
+
+
+        # Is {kart_name} to the left or right of the ego car?
+
+        q4_questions.append({
+            "question": f"Is {kart['kart_name']} to the left or right of the ego car?",
+            "answer": lr,
+            "image_file": image_file
+            })
+
+        # Is {kart_name} in front of or behind the ego car?
+        q4_questions.append({
+            "question": f"Is {kart['kart_name']} in front of or behind the ego car?",
+            "answer": fb,
+            "image_file": image_file
+            })
+
+        # Where is {kart_name} relative to the ego car?
+        q4_questions.append({
+            "question": f"Where is {kart['kart_name']} relative to the ego car?",
+            "answer": f"{fb} and {lr}",
+            "image_file": image_file
+            })
 
     # 5. Counting questions
     # How many karts are to the left of the ego car?
+    q5a = {
+        "question": "How many karts are to the left of the ego car?",
+        "answer": str(count_left),
+        "image_file": image_file
+        }
     # How many karts are to the right of the ego car?
+    q5b = {
+        "question": "How many karts are to the right of the ego car?",
+        "answer": str(count_right),
+        "image_file": image_file
+        }
     # How many karts are in front of the ego car?
+    q5c = {
+        "question": "How many karts are in front of the ego car?",
+        "answer": str(count_front),
+        "image_file": image_file
+        }
     # How many karts are behind the ego car?
+    q5d = {
+        "question": "How many karts are behind the ego car?",
+        "answer": str(count_back),
+        "image_file": image_file
+        }
+    
+    #assemble the 10 questions into a list and return
+
+    return [q1, q2, q3] + q4_questions + [q5a, q5b, q5c, q5d]
 
     raise NotImplementedError("Not implemented")
 
@@ -330,9 +463,72 @@ Usage Example: Visualize QA pairs for a specific file and view:
 You probably need to add additional commands to Fire below.
 """
 
+def validate(gt_file: str = "data/valid_grader/balanced_qa_pairs.json", 
+             info_dir: str = "data/valid"):
+    """Compare generated QA pairs against validation ground truth."""
+
+    with open(gt_file) as f:
+        gt_pairs = json.load(f)
+
+    correct = 0
+    total = 0
+
+    for gt in gt_pairs:
+        parts = gt["image_file"].split("/")
+        filename = parts[-1]
+        pieces = filename.split("_")
+        frame_id = pieces[0]
+        view_idx = int(pieces[1])
+
+        info_file = str(Path(info_dir) / f"{frame_id}_info.json")
+
+        qa_pairs = generate_qa_pairs(info_file, view_idx)
+
+        match = None
+        for qa in qa_pairs:
+            if qa["question"] == gt["question"]:
+                match = qa
+                break
+
+        if match is None:
+            print(f"MISSING: {gt['question']} for {gt['image_file']}")
+            total += 1
+            continue
+
+        if match["answer"] == gt["answer"]:
+            correct += 1
+        else:
+            print(f"WRONG: {gt['question']}")
+            print(f"  Expected: {gt['answer']}")
+            print(f"  Got:      {match['answer']}")
+
+        total += 1
+
+    print(f"\nAlignment: {correct}/{total} ({100*correct/total:.1f}%)")
+
+def generate_all(data_dir: str = "data/train"):
+    data_path = Path(data_dir)
+    info_files = sorted(data_path.glob("*_info.json"))
+    
+    all_qa_pairs = []
+    
+    for info_file in info_files:
+        for view_index in range(10):
+            try:
+                qa_pairs = generate_qa_pairs(str(info_file), view_index)
+                all_qa_pairs.extend(qa_pairs)
+            except Exception as e:
+                print(f"Error on {info_file} view {view_index}: {e}")
+    
+    # Save to a file that data.py will pick up
+    output_file = data_path / "generated_qa_pairs.json"
+    with open(output_file, "w") as f:
+        json.dump(all_qa_pairs, f, indent=2)
+    
+    print(f"Generated {len(all_qa_pairs)} QA pairs -> {output_file}")
 
 def main():
-    fire.Fire({"check": check_qa_pairs})
+    fire.Fire({"check": check_qa_pairs, "generate_all": generate_all, "validate": validate})
 
 
 if __name__ == "__main__":
