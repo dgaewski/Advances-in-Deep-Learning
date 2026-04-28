@@ -101,14 +101,35 @@ class CLIP(nn.Module):
         super().__init__()
         self.vision_encoder = vision_encoder
         self.text_encoder = text_encoder
-        # TODO: implement the rest components
-        raise NotImplementedError("Not implemented")
+        # TODO: implement the rest of the components
+
+        #projection layer
+        self.image_projection = nn.Linear(vision_encoder.config.hidden_size, proj_dim)
+        self.text_projection = nn.Linear(text_encoder.config.hidden_size, proj_dim)
+
+        #learned temperature
+        self.temperature = nn.Parameter(torch.tensor(temperature).log())
 
     def encode_image(self, image: torch.Tensor) -> torch.Tensor:
-        return self.vision_encoder(image)
+    
+        outputs = self.vision_encoder(image)
 
-    def encode_text(self, text: str) -> torch.Tensor:
-        return self.text_encoder(text)
+        # Average pool across patches -> [batch, hidden_dim]
+        image_features = outputs.last_hidden_state.mean(dim=1)
+
+        return image_features
+
+    def encode_text(self, input_ids, attention_mask=None) -> torch.Tensor:
+
+        outputs = self.text_encoder(input_ids=input_ids, attention_mask=attention_mask)
+        hidden = outputs.last_hidden_state
+        mask = attention_mask.unsqueeze(-1).float()
+        summed = (hidden * mask).sum(dim=1)        # [batch, hidden_dim]
+        counts = mask.sum(dim=1)                    # [batch, hidden_dim] (same value repeated)
+        text_features = summed / counts.clamp(min=1)  # clamp to avoid division by zero
+
+
+        return text_features
 
     def save_pretrained(self, save_directory: str, **kwargs):
         """Customize save method, save additional parameters"""
@@ -180,6 +201,34 @@ class CLIP(nn.Module):
         Returns:
             TODO: think about the what values should be returned
         """
+
+
+        #Encode image using VLM - get image features
+        image_features = self.encode_image(pixel_values)
+        
+        #Encode text using VLM - get text features
+
+        text_features = self.encode_text(input_ids, attention_mask)
+
+        # Match dtypes to projection layers
+        image_features = image_features.to(self.image_projection.weight.dtype)
+        text_features = text_features.to(self.text_projection.weight.dtype)
+
+        #Project both to the shared space 
+
+        image_features = self.image_projection(image_features)
+        text_features = self.text_projection(text_features)
+
+        #L2 Normalize
+
+        image_features = nn.functional.normalize(image_features, dim=-1)
+        text_features = nn.functional.normalize(text_features, dim=-1)
+
+        #Compute similarity matrix
+        logits = image_features @ text_features.T * self.temperature.exp()
+
+        return image_features, text_features, logits
+    
         raise NotImplementedError("Not implemented")
 
 
@@ -199,6 +248,32 @@ def compute_clip_loss(
     Returns:
         The loss for the CLIP model.
     """
+
+
+    """
+    #two softmax labels - symetric cross entropy
+    loss_i = cross entropy on rows (for each image, which caption matches?)
+    loss_t = cross entropy on columns (for each caption, which image matches?)
+    loss = (loss_i + loss_t) / 2
+
+    Labels are just [0, 1, 2, ..., N-1] - each item should match its own index.
+    
+    """
+
+    # Unpack the outputs from forward()
+    image_features, text_features, logits = outputs
+
+    # Labels: each image should match its own caption (diagonal)
+    # [0, 1, 2, ..., N-1]
+    targets = torch.arange(logits.shape[0], device=logits.device)
+
+    # Symmetric cross entropy
+    loss_i = nn.functional.cross_entropy(logits, targets)       # rows: image -> text
+    loss_t = nn.functional.cross_entropy(logits.T, targets)     # columns: text -> image
+    loss = (loss_i + loss_t) / 2
+
+    return loss
+
     raise NotImplementedError("Not implemented")
 
 
@@ -218,12 +293,12 @@ def get_target_modules_for_lora(model: nn.Module) -> list[str]:
 
 def train(
     data_dir: Path | None = None,
-    output_dir: str = "clip",
-    num_train_epochs: float = 0.05,  # for debugging purpose, increase this once the dry run works
+    output_dir: str = "clip_model",
+    num_train_epochs: float = 1.5,  # for debugging purpose, increase this once the dry run works
     per_device_train_batch_size: int = 1024,
     gradient_accumulation_steps: int = 1,
     learning_rate: float = 5e-4,
-    num_workers: int = 16,
+    num_workers: int = 2,
 ):
     vlm = BaseVLM()
 
